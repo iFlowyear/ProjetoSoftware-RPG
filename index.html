@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon RPG — Masmorra das Trevas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --d-bg: #0d0a07; --d-surf: #1a1208; --d-brd: #4a3520; --d-gold: #c9a84c; --d-gold2: #f0d080;
+            --d-red: #d44040; --d-grn: #4aaa4a; --d-stone: #2d2520; --d-stone2: #5a4a3a; --d-txt: #d4c4a0; --d-dim: #8a7a60;
+        }
+        html, body { height: 100%; width: 100%; overflow: hidden; background: var(--d-bg); font-family: 'Crimson Text', Georgia, serif; color: var(--d-txt); user-select: none; }
+        .screen { display: none !important; position: fixed; inset: 0; overflow: hidden; }
+        .screen.on { display: flex !important; }
+
+        /* ── MENU ── */
+        #sm { flex-direction: column; align-items: center; justify-content: center; padding: 2rem 1rem; text-align: center; background: var(--d-bg); overflow: hidden; }
+        #sm::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 49px, #1a1208 49px, #1a1208 50px), repeating-linear-gradient(90deg, transparent, transparent 49px, #1a1208 49px, #1a1208 50px); opacity: .5; pointer-events: none; }
+        .mrune { font-size: 82px; margin-bottom: 1.2rem; position: relative; }
+        .mtitle { font-family: 'Cinzel', serif; font-size: 56px; font-weight: 700; color: var(--d-gold); letter-spacing: 5px; position: relative; }
+        .msub { font-family: 'Cinzel', serif; font-size: 20px; color: var(--d-dim); letter-spacing: 8px; margin: .5rem 0 2.5rem; position: relative; }
+        .mlore { font-size: 22px; color: var(--d-dim); max-width: 540px; line-height: 1.9; margin-bottom: 2rem; font-style: italic; position: relative; }
+        .divider { width: 300px; height: 1px; background: linear-gradient(90deg, transparent, var(--d-brd), transparent); margin: 1rem auto; position: relative; }
+        .divider::before { content: '⬧'; position: absolute; left: 50%; transform: translateX(-50%) translateY(-50%); color: var(--d-gold); font-size: 14px; background: var(--d-bg); padding: 0 8px; }
+
+        /* ── BOTÕES ── */
+        .btn { background: #1a1208; border: 1px solid var(--d-gold); color: var(--d-gold); font-family: 'Cinzel', serif; font-size: 17px; letter-spacing: 2px; padding: 14px 38px; cursor: pointer; margin: 6px; transition: all .2s; text-transform: uppercase; position: relative; }
+        .btn:hover { background: #2a1e0e; color: var(--d-gold2); }
+        .btn:active { transform: scale(.97); }
+        .btn.pri { font-size: 21px; padding: 18px 56px; border-color: var(--d-gold2); }
+        .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+        /* ── COMO JOGAR ── */
+        #sh { flex-direction: column; align-items: center; padding: 2rem; background: var(--d-bg); overflow: hidden; }
+        #sh .hcontent { overflow-y: auto; max-height: calc(100vh - 80px); padding-bottom: 1rem; width: 100%; max-width: 700px; scrollbar-width: none; -ms-overflow-style: none; }
+        #sh .hcontent::-webkit-scrollbar { display: none; }
+        .htitle { font-family: 'Cinzel', serif; font-size: 28px; color: var(--d-gold); text-align: center; margin-bottom: 1.4rem; letter-spacing: 3px; flex-shrink: 0; }
+        .hsec { background: var(--d-surf); border: 1px solid var(--d-brd); padding: 1.2rem 1.6rem; margin-bottom: 1rem; }
+        .hsec h3 { font-family: 'Cinzel', serif; font-size: 14px; color: var(--d-gold); letter-spacing: 2px; margin-bottom: .9rem; text-transform: uppercase; border-bottom: 1px solid var(--d-brd); padding-bottom: 5px; }
+        .hsec p, .hsec li { font-size: 20px; color: var(--d-txt); line-height: 1.8; margin-bottom: .4rem; }
+        .hsec ul { padding-left: 1.3rem; }
+        .lgrow { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        .lgcell { width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+        .kgrid { display: grid; grid-template-columns: repeat(3, 70px); gap: 6px; margin-top: .6rem; }
+        .kbox { background: var(--d-stone); border: 1px solid var(--d-stone2); border-bottom: 4px solid #000; text-align: center; padding: 10px 4px; font-family: 'Cinzel', serif; font-size: 17px; color: var(--d-gold); }
+        .kbox small { display: block; font-size: 12px; color: var(--d-dim); margin-top: 3px; }
+        .kbox.bl { visibility: hidden; }
+
+        /* ── TELA DE JOGO ── */
+        #sg.on { display: grid !important; }
+        #sg { grid-template-columns: 1fr 300px; grid-template-rows: 62px 1fr 76px; background: var(--d-bg); }
+        #ghdr { grid-column: 1/-1; background: var(--d-stone); border-bottom: 2px solid var(--d-brd); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; }
+        .hdrtitle { font-family: 'Cinzel', serif; font-size: 22px; color: var(--d-gold); letter-spacing: 3px; }
+        .hdrstats { display: flex; gap: 24px; align-items: center; }
+        .sbadge { font-family: 'Cinzel', serif; font-size: 17px; color: var(--d-dim); }
+        .sbadge span { color: var(--d-gold); font-weight: 700; }
+
+        /* Tabuleiro */
+        #gbw { display: flex; align-items: stretch; justify-content: center; padding: 0; background: var(--d-bg); overflow: hidden; }
+        #gb { display: grid; grid-template-columns: repeat(10, 1fr); grid-template-rows: repeat(10, 1fr); border-right: 2px solid var(--d-brd); border-bottom: 2px solid var(--d-brd); gap: 1px; background: #1a150b; width: 100%; height: 100%; }
+        .cell { display: flex; align-items: center; justify-content: center; position: relative; }
+        .cf { background: #12100d; }
+        .cw { background: #1e1a14; }
+        .cw::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 11px, #2a241844 12px), repeating-linear-gradient(90deg, transparent, transparent 23px, #2a241844 24px); pointer-events: none; }
+        .gb2 { animation: bp 1.5s ease-in-out infinite; }
+        .gt { animation: cg 2s ease-in-out infinite; }
+        .glbl { display: block; font-family: 'Cinzel', serif; line-height: 1; margin-top: -1px; }
+        .lh { color: #6adfff; } .lb { color: #ff6666; } .lt { color: var(--d-gold); }
+        
+        @keyframes bp { 0%, 100% { filter: drop-shadow(0 0 4px #ff4444); transform: scale(1); } 50% { filter: drop-shadow(0 0 12px #ff2222); transform: scale(1.08); } }
+        @keyframes cg { 0%, 100% { filter: drop-shadow(0 0 3px #c9a84c); } 50% { filter: drop-shadow(0 0 10px #f0d080); } }
+
+        /* Sidebar */
+        #gsb { background: var(--d-surf); border-left: 2px solid var(--d-brd); padding: 16px; display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+        .sblk { background: #0d0a07; border: 1px solid var(--d-brd); padding: 14px 16px; }
+        .sblk h4 { font-family: 'Cinzel', serif; font-size: 13px; color: var(--d-gold); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 12px; border-bottom: 1px solid var(--d-brd); padding-bottom: 6px; }
+        .mstat { display: flex; justify-content: space-between; font-size: 18px; margin-bottom: 8px; color: var(--d-dim); }
+        .mstat span { color: var(--d-txt); }
+        .cdots { display: flex; gap: 8px; margin-top: 6px; }
+        .cd { width: 34px; height: 34px; border: 1px solid var(--d-brd); display: flex; align-items: center; justify-content: center; font-size: 17px; transition: all .3s; }
+        .cd.ok { border-color: var(--d-gold); background: #2a1e00; color: var(--d-gold); font-size: 16px; }
+        .cr3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; }
+        .ck { background: var(--d-stone); border: 1px solid var(--d-stone2); border-bottom: 3px solid #000; text-align: center; padding: 0 6px; font-family: 'Cinzel', serif; font-size: 17px; color: var(--d-gold); cursor: pointer; transition: all .1s; height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 60px; }
+        .ck:active, .ck.ak { transform: translateY(1px); border-bottom-width: 1px; background: #3a2e1e; }
+        .ck.bl { visibility: hidden; }
+        #missionp { font-size: 16px; color: var(--d-dim); line-height: 1.7; font-style: italic; }
+
+        /* Log */
+        #glog { grid-column: 1/-1; background: #0d0a07; border-top: 2px solid var(--d-brd); padding: 0 24px; display: flex; align-items: center; gap: 12px; font-size: 20px; font-style: italic; color: var(--d-txt); }
+        #glog.danger { color: var(--d-red); } #glog.gold { color: var(--d-gold2); } #glog.win { color: var(--d-grn); }
+
+        /* Overlay Fim de Jogo */
+        #se { flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; background: rgba(5, 3, 1, 0.97); z-index: 200; opacity: 0; transition: opacity 0.8s ease; pointer-events: none; }
+        #se.on { display: flex !important; pointer-events: all; }
+        #se.visible { opacity: 1; }
+        #se.ewin::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, #2a4a0099 0%, transparent 65%); pointer-events: none; }
+        #se.elose::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, #4a000099 0%, transparent 65%); pointer-events: none; }
+        .erune { font-size: 90px; margin-bottom: 1.2rem; position: relative; }
+        .etitle { font-family: 'Cinzel', serif; font-size: 56px; font-weight: 700; letter-spacing: 4px; margin-bottom: .7rem; position: relative; }
+        .ewin .etitle { color: var(--d-gold2); } .elose .etitle { color: var(--d-red); }
+        .emsg { font-size: 22px; color: var(--d-dim); max-width: 500px; line-height: 1.8; margin-bottom: 2rem; font-style: italic; position: relative; }
+        .estats { background: var(--d-surf); border: 1px solid var(--d-brd); padding: 1.4rem 2.8rem; margin-bottom: 2rem; display: flex; gap: 3.5rem; position: relative; }
+        .esl { text-align: center; }
+        .esn { font-family: 'Cinzel', serif; font-size: 32px; color: var(--d-gold); }
+        .esc { font-size: 16px; color: var(--d-dim); letter-spacing: 1px; margin-top: 3px; }
+
+        /* Tela de Conexão */
+        #sconn { flex-direction: column; align-items: center; justify-content: center; background: var(--d-bg); text-align: center; gap: 1.2rem; }
+        .conn-icon { font-size: 60px; animation: pulse 1.5s ease-in-out infinite; }
+        .conn-title { font-family: 'Cinzel', serif; font-size: 26px; color: var(--d-gold); letter-spacing: 3px; }
+        .conn-msg { font-size: 18px; color: var(--d-dim); font-style: italic; }
+        .conn-url { font-family: monospace; font-size: 16px; color: var(--d-gold2); background: var(--d-stone); padding: 8px 18px; border: 1px solid var(--d-brd); }
+        
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .2; } }
+        .suspense { animation: blink 0.7s ease-in-out infinite; }
+    </style>
+</head>
+<body>
+
+    <div id="sconn" class="screen">
+        <div class="conn-icon">⚔</div>
+        <div class="conn-title">AGUARDANDO SERVIDOR</div>
+        <p class="conn-msg">Conectando ao servidor C em:</p>
+        <div class="conn-url" id="connUrl">http://localhost:8000</div>
+        <p class="conn-msg" style="margin-top:.5rem;">Certifique-se de que o servidor está rodando no terminal.</p>
+        <button class="btn" style="margin-top:1rem;" onclick="tentarConectar()">↺ Tentar Novamente</button>
+    </div>
+
+    <div id="sm" class="screen">
+        <div class="mrune">⚔</div>
+        <div class="mtitle">DUNGEON</div>
+        <div class="msub">RPG — Masmorra das Trevas</div>
+        <p class="mlore">Nas profundezas desta masmorra amaldiçoada, três baús de tesouro o aguardam. Colete todos eles e ganhe força para derrotar o<br>Chefe das Sombras.</p>
+        <div class="divider"></div>
+        <button class="btn pri" onclick="startGame()">▶ Iniciar Aventura</button>
+        <button class="btn" onclick="show('sh')">📜 Como Jogar</button>
+    </div>
+
+    <div id="sh" class="screen" style="background:var(--d-bg);">
+        <div class="htitle">⚔ Como Jogar ⚔</div>
+        <div class="hcontent">
+            <div class="hsec">
+                <h3>Objetivo</h3>
+                <ul>
+                    <li>Colete os <strong style="color:var(--d-gold)">3 baús [ T ]</strong> espalhados pelo mapa.</li>
+                    <li>Com todos os baús, você ganha força para <strong style="color:var(--d-grn)">derrotar o Chefe [ X ]</strong> e vencer!</li>
+                    <li>Cuidado! Se o Chefe te pegar <em>antes</em>, é <strong style="color:var(--d-red)">GAME OVER!</strong></li>
+                </ul>
+            </div>
+            <div class="hsec">
+                <h3>Personagens e itens</h3>
+                <div class="lgrow">
+                    <div class="lgcell" style="background:#12100d;border:1px solid #2a2418;color:#6adfff">🧙</div>
+                    <span style="font-size:20px">[ H ] — <strong style="color:#6adfff">Herói</strong> (Você)</span>
+                </div>
+                <div class="lgrow">
+                    <div class="lgcell" style="background:#12100d;border:1px solid #2a2418;color:#ff6666">👹</div>
+                    <span style="font-size:20px">[ X ] — <strong style="color:#ff6666">Chefe</strong> (Inimigo que te persegue)</span>
+                </div>
+                <div class="lgrow">
+                    <div class="lgcell" style="background:#12100d;border:1px solid #2a2418;color:#c9a84c">📦</div>
+                    <span style="font-size:20px">[ T ] — <strong style="color:var(--d-gold)">Baú</strong> (Tesouro a ser coletado)</span>
+                </div>
+                <div class="lgrow">
+                    <div class="lgcell" style="background:#1e1a14;border:1px solid #2a2418;color:#5a4a3a">🪨</div>
+                    <span style="font-size:20px">[ # ] — <strong style="color:var(--d-stone2)">Parede</strong> (Obstáculo intransponível)</span>
+                </div>
+                <div class="lgrow">
+                    <div class="lgcell" style="background:#12100d;border:1px solid #2a2418;color:#3a3020">·</div>
+                    <span style="font-size:20px">[ . ] — <strong style="color:var(--d-dim)">Chão</strong> (Caminho livre)</span>
+                </div>
+            </div>
+            <div class="hsec">
+                <h3>Controles — WASD</h3>
+                <div class="kgrid">
+                    <div class="kbox bl"></div>
+                    <div class="kbox">W<small>↑ Cima</small></div>
+                    <div class="kbox bl"></div>
+                    <div class="kbox">A<small>← Esq.</small></div>
+                    <div class="kbox">S<small>↓ Baixo</small></div>
+                    <div class="kbox">D<small>→ Dir.</small></div>
+                </div>
+            </div>
+            <div style="text-align:center;margin-top:1.5rem;padding-bottom:2rem;">
+                <button class="btn" onclick="show('sm')">← Voltar ao Menu</button>
+                <button class="btn pri" onclick="startGame()">▶ Jogar Agora</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="sg" class="screen">
+        <div id="ghdr">
+            <div class="hdrtitle">⚔ DUNGEON RPG</div>
+            <div class="hdrstats">
+                <div class="sbadge">Movimentos: <span id="mvc">0</span></div>
+                <div class="sbadge">Baús: <span id="bcc">0/3</span></div>
+                <button class="btn" style="padding:6px 16px;font-size:13px;margin:0;" onclick="restartGame()">↺ Reset</button>
+                <button class="btn" style="padding:6px 16px;font-size:13px;margin:0;" onclick="show('sm')">✕ Sair</button>
+            </div>
+        </div>
+        <div id="gbw"><div id="gb"></div></div>
+        <div id="gsb">
+            <div class="sblk">
+                <h4>Herói</h4>
+                <div class="mstat">Posição <span id="hpos">—</span></div>
+                <div class="mstat">Status <span id="hst" style="color:var(--d-grn)">Vivo</span></div>
+            </div>
+            <div class="sblk">
+                <h4>Tesouros</h4>
+                <div class="cdots">
+                    <div class="cd" id="d0">📦</div>
+                    <div class="cd" id="d1">📦</div>
+                    <div class="cd" id="d2">📦</div>
+                </div>
+                <div class="mstat" style="margin-top:12px">Coletados <span id="csb">0 / 3</span></div>
+            </div>
+            <div class="sblk">
+                <h4>Controles</h4>
+                <div class="cr3">
+                    <div class="ck bl"></div>
+                    <div class="ck" id="kw" onclick="sendMove('w')">W<br><span style="font-size:11px;color:var(--d-dim)">↑ Cima</span></div>
+                    <div class="ck bl"></div>
+                </div>
+                <div class="cr3" style="margin-top:5px;">
+                    <div class="ck" id="ka" onclick="sendMove('a')">A<br><span style="font-size:11px;color:var(--d-dim)">← Esq.</span></div>
+                    <div class="ck" id="ks" onclick="sendMove('s')">S<br><span style="font-size:11px;color:var(--d-dim)">↓ Baixo</span></div>
+                    <div class="ck" id="kd" onclick="sendMove('d')">D<br><span style="font-size:11px;color:var(--d-dim)">→ Dir.</span></div>
+                </div>
+            </div>
+            <div class="sblk">
+                <h4>Missão</h4>
+                <p id="missionp">Colete todos os baús antes que o Chefe te encontre!</p>
+            </div>
+        </div>
+        <div id="glog"><span id="lico">📜</span>&nbsp;<span id="ltxt">A masmorra desperta... Mova-se com WASD.</span></div>
+    </div>
+
+    <div id="se" class="screen">
+        <div class="erune" id="erune">⚔</div>
+        <div class="etitle" id="etitle">—</div>
+        <p class="emsg" id="emsg">—</p>
+        <div class="estats">
+            <div class="esl"><div class="esn" id="emvs">0</div><div class="esc">Movimentos</div></div>
+            <div class="esl"><div class="esn" id="echs">0/3</div><div class="esc">Baús coletados</div></div>
+        </div>
+        <button class="btn pri" onclick="restartGame()">↺ Jogar Novamente</button>
+        <button class="btn" onclick="goToMenuWithReset()">🏠 Menu Principal</button>
+    </div>
+
+    <script>
+        // Detecta dinamicamente a origem para rodar de forma híbrida (Local vs Render)
+        const API = window.location.origin === 'file://' ? 'http://localhost:8000' : window.location.origin;
+
+        let moves = 0;
+        let gameEnded = false;
+        let endScheduled = false;
+        let inputLocked = false; 
+        let lastChests = 3;
+
+        document.getElementById('connUrl').textContent = API;
+
+        function show(id) {
+            ['sconn','sm','sh','sg','se'].forEach(s => {
+                const el = document.getElementById(s);
+                el.classList.remove('on','visible','ewin','elose');
+                el.style.display = 'none';
+            });
+            const el = document.getElementById(id);
+            el.classList.add('on');
+            el.style.display = (id === 'sg') ? 'grid' : 'flex';
+        }
+
+        async function tentarConectar() {
+            try {
+                const r = await fetch(API + '/api/state');
+                if (!r.ok) throw new Error('bad status');
+                show('sm'); 
+            } catch(e) {
+                show('sconn'); 
+            }
+        }
+
+        async function startGame() {
+            moves = 0;
+            gameEnded = false;
+            endScheduled = false;
+            inputLocked = false;
+            lastChests = 3;
+
+            show('sg');
+            document.getElementById('sg').style.display = 'grid';
+            document.getElementById('mvc').textContent = '0';
+            setLog('📜', 'A masmorra desperta... Mova-se com WASD.', '');
+            requestAnimationFrame(resizeBoard);
+            await fetchState();
+        }
+
+        async function restartGame() {
+            try {
+                await fetch(API + '/api/reset');
+                moves = 0;
+                gameEnded = false;
+                endScheduled = false;
+                inputLocked = false;
+                lastChests = 3;
+                show('sg');
+                document.getElementById('mvc').textContent = '0';
+                setLog('📜', 'A masmorra desperta... Mova-se com WASD.', '');
+                requestAnimationFrame(resizeBoard);
+                await fetchState();
+            } catch(e) {
+                setLog('⚠', 'Erro ao reiniciar o jogo.', 'danger');
+            }
+        }
+
+        async function goToMenuWithReset() {
+            try {
+                await fetch(API + '/api/reset');
+            } catch(e) {
+                console.log('Reset na volta ao menu:', e);
+            }
+            show('sm');
+        }
+
+        async function fetchState() {
+            try {
+                const r = await fetch(API + '/api/state');
+                if (!r.ok) throw new Error('Status: ' + r.status);
+                const data = await r.json();
+                console.log('State:', data);
+                renderMap(data.map);
+                updateSidebar(data.chests, data.msg);
+
+                if (!data.active && !endScheduled) {
+                    endScheduled = true;
+                    gameEnded = true;
+                    const win = data.chests === 0;
+                    console.log('Game ended. Win:', win, 'Chests left:', data.chests);
+                    setSuspenseLog(
+                        win ? '🏆' : '💀',
+                        win ? 'Você derrotou o Chefe! Preparando o resultado...'
+                            : 'O Chefe te capturou! Preparando o resultado...',
+                        win ? 'win' : 'danger'
+                    );
+                    setTimeout(() => showEnd(win, data.chests), 1600);
+                }
+            } catch(e) {
+                console.error('fetchState error:', e);
+                setLog('⚠', 'Erro: ' + e.message, 'danger');
+            }
+        }
+
+        async function sendMove(dir) {
+            if (gameEnded || inputLocked) return;
+            inputLocked = true;
+
+            const keyMap = {w:'kw',a:'ka',s:'ks',d:'kd'};
+            const el = document.getElementById(keyMap[dir]);
+            if (el) { el.classList.add('ak'); setTimeout(() => el.classList.remove('ak'), 120); }
+
+            try {
+                await fetch(API + '/api/move?dir=' + dir);
+                moves++;
+                document.getElementById('mvc').textContent = moves;
+                await fetchState();
+            } catch(e) {
+                setLog('⚠', 'Erro ao enviar movimento.', 'danger');
+            }
+
+            inputLocked = false;
+        }
+
+        function renderMap(mapRows) {
+            const board = document.getElementById('gb');
+            const wrap  = document.getElementById('gbw');
+            const TAM   = mapRows.length;
+            const W = wrap.clientWidth;
+            const H = wrap.clientHeight;
+            const cs  = Math.floor(Math.min(W, H) / TAM);
+            const fs  = Math.max(10, Math.floor(cs * 0.44));
+            const lfs = Math.max(7,  Math.floor(cs * 0.14));
+
+            board.style.width  = (cs * TAM) + 'px';
+            board.style.height = (cs * TAM) + 'px';
+            board.style.gridTemplateColumns = `repeat(${TAM}, 1fr)`;
+            board.style.gridTemplateRows    = `repeat(${TAM}, 1fr)`;
+            board.innerHTML = '';
+
+            let hx = -1, hy = -1;
+
+            for (let i = 0; i < TAM; i++) {
+                for (let j = 0; j < mapRows[i].length; j++) {
+                    const ch   = mapRows[i][j];
+                    const cell = document.createElement('div');
+                    const wall = (ch === '#');
+                    cell.className = 'cell ' + (wall ? 'cw' : 'cf');
+                    cell.style.width  = cs + 'px';
+                    cell.style.height = cs + 'px';
+
+                    if (ch === 'H') {
+                        hx = j; hy = i;
+                        cell.innerHTML = `<span style="display:flex;flex-direction:column;align-items:center;line-height:1">
+                            <span style="font-size:${fs}px;filter:drop-shadow(0 0 5px #6adfff)">🧙</span>
+                            <span class="glbl lh" style="font-size:${lfs}px">H</span></span>`;
+                    } else if (ch === 'X') {
+                        cell.innerHTML = `<span style="display:flex;flex-direction:column;align-items:center;line-height:1">
+                            <span class="gb2" style="font-size:${fs}px">👹</span>
+                            <span class="glbl lb" style="font-size:${lfs}px">X</span></span>`;
+                    } else if (ch === 'T') {
+                        cell.innerHTML = `<span style="display:flex;flex-direction:column;align-items:center;line-height:1">
+                            <span class="gt" style="font-size:${fs}px">📦</span>
+                            <span class="glbl lt" style="font-size:${lfs}px">T</span></span>`;
+                    } else if (ch === '#') {
+                        cell.innerHTML = `<span style="font-size:${Math.floor(fs*0.7)}px;color:#3a3020;position:relative;z-index:2">🪨</span>`;
+                    }
+                    board.appendChild(cell);
+                }
+            }
+
+            if (hx >= 0) document.getElementById('hpos').textContent = '(' + hy + ',' + hx + ')';
+        }
+
+        function resizeBoard() {
+            fetchState();
+        }
+
+        function updateSidebar(chests, msg) {
+            const coletados = 3 - chests;
+            document.getElementById('bcc').textContent  = coletados + '/3';
+            document.getElementById('csb').textContent  = coletados + ' / 3';
+
+            for (let i = 0; i < 3; i++) {
+                const d = document.getElementById('d' + i);
+                if (i < coletados) { d.classList.add('ok'); d.textContent = '✓'; }
+                else { d.classList.remove('ok'); d.textContent = '📦'; }
+            }
+
+            const mp = document.getElementById('missionp');
+            if (chests === 0) {
+                mp.textContent = '⚡ Poder total! Encontre o Chefe e o derrote!';
+                mp.style.color = 'var(--d-gold2)';
+            } else {
+                mp.textContent = 'Colete todos os baús antes que o Chefe te encontre!';
+                mp.style.color = 'var(--d-dim)';
+            }
+
+            if (!endScheduled) {
+                const lc = msg.toLowerCase();
+                let cls = '';
+                let ico = '👣';
+                if (lc.includes('baú') || lc.includes('bau') || lc.includes('tesouro')) { cls = 'gold'; ico = '📦'; }
+                else if (lc.includes('todos os baús') || lc.includes('poder total'))     { cls = 'gold'; ico = '✨'; }
+                setLog(ico, msg, cls);
+            }
+
+            lastChests = chests;
+        }
+
+        function setLog(ico, txt, cls) {
+            document.getElementById('lico').textContent = ico;
+            const lt = document.getElementById('ltxt');
+            lt.textContent = txt;
+            lt.classList.remove('suspense');
+            document.getElementById('glog').className = cls || '';
+        }
+
+        function setSuspenseLog(ico, txt, cls) {
+            document.getElementById('lico').textContent = ico;
+            const lt = document.getElementById('ltxt');
+            lt.textContent = txt;
+            lt.classList.add('suspense');
+            document.getElementById('glog').className = cls || '';
+        }
+
+        function showEnd(win, chestsLeft) {
+            const se = document.getElementById('se');
+            se.className = 'screen on ' + (win ? 'ewin' : 'elose');
+            se.style.display = 'flex';
+            se.style.opacity = '0';
+            document.getElementById('erune').textContent  = win ? '🏆' : '💀';
+            document.getElementById('etitle').textContent = win ? 'VITÓRIA!' : 'DERROTA!';
+            document.getElementById('emsg').textContent   = win
+                ? 'Lendário! Você coletou todos os tesouros e derrotou o Chefe das Sombras. A masmorra é sua!'
+                : 'O Chefe das Sombras te capturou antes de você estar preparado. A masmorra venceu desta vez...';
+            document.getElementById('emvs').textContent = moves;
+            document.getElementById('echs').textContent = (3 - chestsLeft) + '/3';
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    se.classList.add('visible');
+                    se.style.opacity = '1';
+                });
+            });
+        }
+
+        document.addEventListener('keydown', e => {
+            const map = {w:'w', s:'s', a:'a', d:'d'};
+            const k = e.key.toLowerCase();
+            if (map[k]) { e.preventDefault(); sendMove(k); }
+        });
+
+        window.addEventListener('resize', () => {
+            if (document.getElementById('sg').classList.contains('on')) fetchState();
+        });
+
+        document.addEventListener('wheel', e => {
+            if (!e.target.closest('.hcontent')) { e.preventDefault(); }
+        }, {passive:false});
+        document.addEventListener('touchmove', e => {
+            if (!e.target.closest('.hcontent')) { e.preventDefault(); }
+        }, {passive:false});
+
+        tentarConectar();
+    </script>
+</body>
+</html>
