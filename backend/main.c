@@ -4,7 +4,7 @@
 #include <time.h>
 #include <string.h>
 
-// Macros para a Thread do servidor rodar isolada ao fundo
+// Macros para a thread do servidor rodar isolada ao fundo
 #ifdef _WIN32
 #include <windows.h>
 #define THREAD_RETURN DWORD WINAPI
@@ -17,7 +17,7 @@
 #define TAM 10
 #define PORT_PADRAO "8000"
 
-// Variáveis de controle EXCLUSIVAS da modalidade Web (Totalmente desconectadas do Terminal)
+// Variáveis de controle EXCLUSIVAS da modalidade web
 char mapaGlobal[TAM][TAM];
 int heroiWebX, heroiWebY;
 int chefeWebX, chefeWebY;
@@ -29,14 +29,14 @@ char mensagemGlobal[128] = "Masmorra iniciada via Web!";
 int posHerX = -1, posHerY = -1;
 int posChefX = -1, posChefY = -1;
 
-// Protótipos das suas funções ORIGINAIS
+// Funções de execução do jogo
 void exibirMenu();
 void inicializarMapa(char (*mapa)[TAM], int *hX, int *hY, int *cX, int *cY);
 void desenharMapa(char (*mapa)[TAM], int baus);
 void moverHeroi(char (*mapa)[TAM], int *heroiX, int *heroiY, int *chefeX, int *chefeY, int *baus, int *ativo, char comando);
 void moverChefe(char (*mapa)[TAM], int heroiX, int heroiY, int *chefeX, int *chefeY, int baus, int *ativo);
 
-// Handler HTTP: Gerencia o jogo online de forma autônoma
+// Handler HTTP: gerencia o jogo online de forma autônoma
 static void evento_http_handler(struct mg_connection *c, int ev, void *ev_data) {
     if (ev == MG_EV_HTTP_MSG) {
         struct mg_http_message *hm = (struct mg_http_message *) ev_data;
@@ -49,7 +49,7 @@ static void evento_http_handler(struct mg_connection *c, int ev, void *ev_data) 
             return;
         }
 
-        // Rota 1: Envia o estado isolado da Web
+        // Rota 1: envia o estado isolado da web
         if (mg_match(hm->uri, mg_str("/api/state"), NULL)) {
             char mapa_json[1024] = "";
             strcat(mapa_json, "[");
@@ -69,7 +69,7 @@ static void evento_http_handler(struct mg_connection *c, int ev, void *ev_data) 
                 "{ \"map\": %s, \"chests\": %d, \"active\": %d, \"msg\": \"%s\" }", 
                 mapa_json, bausGlobais, ativoGlobal, mensagemGlobal);
         } 
-        // Rota 2: Movimentos aplicados apenas no ambiente online
+        // Rota 2: movimentos aplicados apenas no ambiente online
         else if (mg_match(hm->uri, mg_str("/api/move"), NULL)) {
             char dir[2] = {0};
             mg_http_get_var(&hm->query, "dir", dir, sizeof(dir));
@@ -103,7 +103,7 @@ static void evento_http_handler(struct mg_connection *c, int ev, void *ev_data) 
             }
             mg_http_reply(c, 200, "Access-Control-Allow-Origin: *\r\n", "ok");
         }
-        // Rota 3: Reset do jogo (reinicializa o mapa)
+        // Rota 3: reset do jogo (reinicializa o mapa)
         else if (mg_match(hm->uri, mg_str("/api/reset"), NULL)) {
             inicializarMapa(mapaGlobal, &heroiWebX, &heroiWebY, &chefeWebX, &chefeWebY);
             posHerX = -1;
@@ -118,7 +118,7 @@ static void evento_http_handler(struct mg_connection *c, int ev, void *ev_data) 
                 "Access-Control-Allow-Origin: *\r\n", 
                 "{ \"status\": \"reset\" }");
         } 
-        // Rota 4: Carrega o index.html da raiz
+        // Rota 4: carrega o index.html da raiz
         else if (mg_match(hm->uri, mg_str("/"), NULL)) {
             FILE *f = fopen("../index.html", "r");
             if (f != NULL) {
@@ -141,7 +141,7 @@ static void evento_http_handler(struct mg_connection *c, int ev, void *ev_data) 
     }
 }
 
-// Thread secundária dedicada a manter o ecossistema Web ativo
+// Thread secundária dedicada a manter o ecossistema web ativo
 THREAD_RETURN rodar_servidor_web(void *arg) {
     struct mg_mgr *mgr = (struct mg_mgr *)arg;
     for (;;) {
@@ -161,14 +161,14 @@ int main() {
     // Desativa os prints internos de log da Mongoose para manter o terminal limpo
     mg_log_set(MG_LL_NONE);
 
-    // Inicialização da matriz própria da Web na memória
+    // Inicialização da matriz própria da web na memória
     inicializarMapa(mapaGlobal, &heroiWebX, &heroiWebY, &chefeWebX, &chefeWebY);
 
     // Inicialização da Mongoose em background
     struct mg_mgr mgr;
     mg_mgr_init(&mgr);
     
-    // SISTEMA DE DETECÇÃO ADAPTADO DO SEU EXEMPLO: Local vs Nuvem
+    // Sistema de detecção endereço local vs nuvem
     const char *port = getenv("PORT");
     char listen_addr[64];
     if (port == NULL) {
@@ -194,7 +194,7 @@ int main() {
     printf("   Servidor Web Ativo em: %s                        \n", listen_addr);
     printf("====================================================\n\n");
 
-    // Variáveis locais da main (evitando globais usando ponteiros) - AS SUAS ORIGINAIS
+    // Variáveis locais da main (evitando globais usando ponteiros)
     char mapa[TAM][TAM];
     int heroiX, heroiY;
     int chefeX, chefeY;
@@ -209,7 +209,7 @@ int main() {
 
     char tecla;
     
-    // Loop principal do Dungeon Crawler - O SEU ORIGINAL COM SCANF
+    // Loop principal do Dungeon Crawler
     while (jogoAtivo) {
         desenharMapa(mapa, bausRestantes);
         
@@ -225,7 +225,7 @@ int main() {
         moverHeroi(mapa, &heroiX, &heroiY, &chefeX, &chefeY, &bausRestantes, &jogoAtivo, tecla);
     }
 
-    // Mantém a Thread de rede aberta caso o terminal encerre ou finalize o jogo local
+    // Mantém a thread de rede aberta caso o terminal encerre ou finalize o jogo local
     while(1) {
 #ifdef _WIN32
         Sleep(1000);
@@ -238,7 +238,7 @@ int main() {
     return 0;
 }
 
-// Exibe a tela inicial com o funcionamento do jogo e personagens - EXATAMENTE A SUA ORIGINAL
+// Exibe a tela inicial com o funcionamento do jogo e personagens
 void exibirMenu() {
     printf("==================================================\n");
     printf("               BEM-VINDO À MASMORRA               \n");
@@ -266,8 +266,8 @@ void exibirMenu() {
     printf(" Q - Sair do jogo\n\n");
     
     printf("Pressione ENTER para começar o mapa no terminal... ");
-    fflush(stdin); // Limpa o lixo do teclado
-    getchar();     // Captura o ENTER puro sozinho
+    fflush(stdin);
+    getchar();
     
     // Limpa a tela do console antes de desenhar o mapa pela primeira vez
 #ifdef _WIN32
@@ -277,7 +277,7 @@ void exibirMenu() {
 #endif
 }
 
-// Preenche as bordas com '#' e sorteia os elementos nas posições vazias '.' - EXATAMENTE A SUA ORIGINAL
+// Preenche as bordas com '#' e sorteia os elementos nas posições vazias '.'
 void inicializarMapa(char (*mapa)[TAM], int *hX, int *hY, int *cX, int *cY) {
     for (int i = 0; i < TAM; i++) {
         for (int j = 0; j < TAM; j++) {
@@ -316,7 +316,7 @@ void inicializarMapa(char (*mapa)[TAM], int *hX, int *hY, int *cX, int *cY) {
     *hY = y;
 }
 
-// Desenha a matriz em texto na tela sem recriá-la - EXATAMENTE A SUA ORIGINAL
+// Desenha a matriz em texto na tela sem recriá-la
 void desenharMapa(char (*mapa)[TAM], int baus) {
     printf("\n--- GERADOR DE MASMORRAS (Baús restantes: %d) ---\n", baus);
     for (int i = 0; i < TAM; i++) {
@@ -327,7 +327,7 @@ void desenharMapa(char (*mapa)[TAM], int baus) {
     }
 }
 
-// Função de controle de movimento por referência (ponteiros para X e Y) - EXATAMENTE A SUA ORIGINAL
+// Função de controle de movimento por referência (ponteiros para X e Y)
 void moverHeroi(char (*mapa)[TAM], int *heroiX, int *heroiY, int *chefeX, int *chefeY, int *baus, int *ativo, char comando) {
     int proxX = *heroiX;
     int proxY = *heroiY;
@@ -365,7 +365,7 @@ void moverHeroi(char (*mapa)[TAM], int *heroiX, int *heroiY, int *chefeX, int *c
     }
 }
 
-// IA do Chefe que o faz andar em direção ao jogador pelas coordenadas X e Y - EXATAMENTE A SUA ORIGINAL
+// IA do Chefe que o faz andar em direção ao jogador pelas coordenadas X e Y
 void moverChefe(char (*mapa)[TAM], int heroiX, int heroiY, int *chefeX, int *chefeY, int baus, int *ativo) {
     if (rand() % 2 == 0) return;
 
